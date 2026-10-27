@@ -1,8 +1,8 @@
 # PCA: EXP-1  SUM ARRAY GPU
-<h3>ENTER YOUR NAME</h3>
-<h3>ENTER YOUR REGISTER NO</h3>
-<h3>EX. NO</h3>
-<h3>DATE</h3>
+<h3>ENTER YOUR NAME: T Danush Reddy</h3>
+<h3>ENTER YOUR REGISTER NO: 2122223040029</h3>
+<h3>EX. NO: 1</h3>
+<h3>DATE: 27/10/2026</h3>
 <h1> <align=center> SUM ARRAY ON HOST AND DEVICE </h3>
 PCA-GPU-based-vector-summation.-Explore-the-differences.
 i) Using the program sumArraysOnGPU-timer.cu, set the block.x = 1023. Recompile and run it. Compare the result with the execution configuration of block.x = 1024. Try to explain the difference and the reason.
@@ -39,7 +39,7 @@ Google Colab with NVCC Compiler
 #include <time.h>
 #include <sys/time.h>
 
-// CUDA error checking macro
+
 #define CHECK(call)                                                   
 {                                                                     
     const cudaError_t error = call;                                   
@@ -52,7 +52,7 @@ Google Colab with NVCC Compiler
     }                                                                 
 }
 
-// Timer function
+
 double seconds()
 {
     struct timeval tp;
@@ -60,7 +60,7 @@ double seconds()
     return ((double)tp.tv_sec + (double)tp.tv_usec * 1.0e-6);
 }
 
-// Compare CPU and GPU results
+
 void checkResult(float *hostRef, float *gpuRef, const int N)
 {
     double epsilon = 1.0E-5;
@@ -82,7 +82,7 @@ void checkResult(float *hostRef, float *gpuRef, const int N)
         printf("Arrays match.\n\n");
 }
 
-// Initialize array with random values
+
 void initialData(float *ip, int size)
 {
     srand((unsigned)time(NULL));
@@ -93,7 +93,7 @@ void initialData(float *ip, int size)
     }
 }
 
-// CPU vector addition
+
 void sumArraysOnHost(float *A, float *B, float *C, const int N)
 {
     for (int i = 0; i < N; i++)
@@ -102,7 +102,7 @@ void sumArraysOnHost(float *A, float *B, float *C, const int N)
     }
 }
 
-// GPU kernel
+
 __global__ void sumArraysOnGPU(float *A, float *B, float *C, const int N)
 {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -115,20 +115,17 @@ int main()
 {
     printf("CUDA Vector Addition Starting...\n");
 
-    // Select GPU
     int dev = 0;
     cudaDeviceProp deviceProp;
     CHECK(cudaGetDeviceProperties(&deviceProp, dev));
     printf("Using Device %d: %s\n", dev, deviceProp.name);
     CHECK(cudaSetDevice(dev));
-
-    // Vector size
+    
     int nElem = 1 << 24;   // 16,777,216 elements
     printf("Vector size: %d\n", nElem);
 
     size_t nBytes = nElem * sizeof(float);
 
-    // Allocate host memory
     float *h_A     = (float *)malloc(nBytes);
     float *h_B     = (float *)malloc(nBytes);
     float *hostRef = (float *)malloc(nBytes);
@@ -136,7 +133,6 @@ int main()
 
     double iStart, iElaps;
 
-    // Initialize input data
     iStart = seconds();
     initialData(h_A, nElem);
     initialData(h_B, nElem);
@@ -146,49 +142,39 @@ int main()
     memset(hostRef, 0, nBytes);
     memset(gpuRef, 0, nBytes);
 
-    // CPU computation
     iStart = seconds();
     sumArraysOnHost(h_A, h_B, hostRef, nElem);
     iElaps = seconds() - iStart;
     printf("CPU elapsed: %f sec\n", iElaps);
-
-    // Allocate device memory
+    
     float *d_A, *d_B, *d_C;
     CHECK(cudaMalloc((void **)&d_A, nBytes));
     CHECK(cudaMalloc((void **)&d_B, nBytes));
     CHECK(cudaMalloc((void **)&d_C, nBytes));
 
-    // Copy data to device
     CHECK(cudaMemcpy(d_A, h_A, nBytes, cudaMemcpyHostToDevice));
     CHECK(cudaMemcpy(d_B, h_B, nBytes, cudaMemcpyHostToDevice));
 
-    // Kernel launch configuration
     int threads = 512;
     dim3 block(threads);
     dim3 grid((nElem + block.x - 1) / block.x);
-
-    // GPU computation
+    
     iStart = seconds();
     sumArraysOnGPU<<<grid, block>>>(d_A, d_B, d_C, nElem);
     CHECK(cudaDeviceSynchronize());
     iElaps = seconds() - iStart;
     printf("GPU elapsed: %f sec\n", iElaps);
 
-    // Check for kernel errors
     CHECK(cudaGetLastError());
-
-    // Copy result back
+    
     CHECK(cudaMemcpy(gpuRef, d_C, nBytes, cudaMemcpyDeviceToHost));
-
-    // Verify results
+    
     checkResult(hostRef, gpuRef, nElem);
-
-    // Free device memory
+    
     CHECK(cudaFree(d_A));
     CHECK(cudaFree(d_B));
     CHECK(cudaFree(d_C));
-
-    // Free host memory
+    
     free(h_A);
     free(h_B);
     free(hostRef);
